@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CollectionItem {
+  id            String    @id @default(cuid())
+  itemNo        String
+  itemType      String
+  condition     String
+  quantity      Int       @default(1)
+  purchasePrice Float?
+  purchaseDate  DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([itemNo, itemType])
+}
+
+model PriceSnapshot {
+  id         String   @id @default(cuid())
+  itemNo     String
+  itemType   String
+  condition  String
+  avgPrice   Float
+  minPrice   Float
+  maxPrice   Float
+  qtySold    Int
+  totalLots  Int
+  capturedAt DateTime @default(now())
+
+  @@index([itemNo, itemType, condition, capturedAt])
+}
+
+model CachedItem {
+  itemNo       String
+  itemType     String
+  name         String
+  imageUrl     String?
+  categoryName String?
+  lastFetched  DateTime @default(now())
+
+  @@id([itemNo, itemType])
+}
