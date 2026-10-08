@@ -7,13 +7,22 @@ export async function PATCH(
 ) {
   const { id } = await params
   const body = await req.json()
-  const { quantity, notes, purchasePrice, purchaseDate } = body
+  const { itemNo, itemType, condition, quantity, notes, purchasePrice, purchaseDate } = body
+
+  for (const [field, value] of Object.entries({ itemNo, itemType, condition })) {
+    if (value !== undefined && !String(value).trim()) {
+      return Response.json({ error: `${field} cannot be empty` }, { status: 400 })
+    }
+  }
 
   const item = await prisma.collectionItem.update({
     where: { id },
     data: {
-      ...(quantity !== undefined && { quantity: Number(quantity) }),
-      ...(notes !== undefined && { notes }),
+      ...(itemNo !== undefined && { itemNo: String(itemNo).trim().toUpperCase() }),
+      ...(itemType !== undefined && { itemType: String(itemType).toUpperCase() }),
+      ...(condition !== undefined && { condition: String(condition).toUpperCase() }),
+      ...(quantity !== undefined && { quantity: Number(quantity) || 1 }),
+      ...(notes !== undefined && { notes: notes?.trim() || null }),
       ...(purchasePrice !== undefined && { purchasePrice: purchasePrice ? Number(purchasePrice) : null }),
       ...(purchaseDate !== undefined && { purchaseDate: purchaseDate ? new Date(purchaseDate) : null }),
     },

@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { X } from 'lucide-react'
-import { CachedItemData } from '@/lib/types'
+import { CachedItemData, CollectionEntry } from '@/lib/types'
+import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
 
 interface Props {
   open: boolean
   onClose: () => void
   onAdded: () => void
+  /** When set, the drawer edits this item instead of adding a new one */
+  item?: CollectionEntry | null
 }
 
 const ITEM_TYPES = ['MINIFIG', 'SET']
@@ -16,14 +19,16 @@ const CONDITIONS = [
   { value: 'U', label: 'Used' },
 ]
 
-export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
-  const [itemNo, setItemNo] = useState('')
-  const [itemType, setItemType] = useState('MINIFIG')
-  const [condition, setCondition] = useState('U')
-  const [quantity, setQuantity] = useState('1')
-  const [purchasePrice, setPurchasePrice] = useState('')
-  const [purchaseDate, setPurchaseDate] = useState('')
-  const [notes, setNotes] = useState('')
+export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
+  const isEdit = !!item
+  // In edit mode, start from the item's current values
+  const [itemNo, setItemNo] = useState(item?.itemNo ?? '')
+  const [itemType, setItemType] = useState(item?.itemType ?? 'MINIFIG')
+  const [condition, setCondition] = useState(item?.condition ?? 'U')
+  const [quantity, setQuantity] = useState(item ? String(item.quantity) : '1')
+  const [purchasePrice, setPurchasePrice] = useState(item?.purchasePrice != null ? String(item.purchasePrice) : '')
+  const [purchaseDate, setPurchaseDate] = useState(item?.purchaseDate?.slice(0, 10) ?? '')
+  const [notes, setNotes] = useState(item?.notes ?? '')
   const [preview, setPreview] = useState<CachedItemData | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
@@ -76,8 +81,8 @@ export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
     setSubmitting(true)
     setError('')
     try {
-      const res = await fetch('/api/collection', {
-        method: 'POST',
+      const res = await fetch(isEdit ? `/api/collection/${item.id}` : '/api/collection', {
+        method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           itemNo: itemNo.trim().toUpperCase(),
@@ -91,7 +96,7 @@ export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
       })
       if (!res.ok) {
         const d = await res.json()
-        throw new Error(d.error || 'Failed to add item')
+        throw new Error(d.error || (isEdit ? 'Failed to save changes' : 'Failed to add item'))
       }
       reset()
       onAdded()
@@ -108,14 +113,14 @@ export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
-      <div className="flex-1 bg-black/60" onClick={onClose} />
+      <div className="flex-1 bg-black/60" onClick={() => { reset(); onClose() }} />
 
       {/* Drawer */}
       <div className="w-full max-w-md bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-700">
-          <h2 className="text-lg font-semibold text-white">Add Item</h2>
+          <h2 className="text-lg font-semibold text-white">{isEdit ? 'Edit Item' : 'Add Item'}</h2>
           <button
-            onClick={onClose}
+            onClick={() => { reset(); onClose() }}
             className="text-gray-400 hover:text-white transition-colors"
           >
             <X size={20} />
@@ -166,13 +171,24 @@ export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
               {preview.imageUrl && (
                 <img
                   src={preview.imageUrl}
-                  alt={preview.name}
+                  alt={formatItemName(preview.name)}
                   className="w-12 h-12 object-contain rounded"
                 />
               )}
               <div>
-                <div className="text-sm font-medium text-white">{preview.name}</div>
-                <div className="text-xs text-gray-400">{preview.itemNo} · {preview.itemType}</div>
+                <div className="text-sm font-medium text-white" title={decodeEntities(preview.name)}>
+                  {formatItemName(preview.name)}
+                </div>
+                <div className="text-xs text-gray-400">
+                  <a
+                    href={bricklinkUrl(preview.itemType, preview.itemNo)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-400 hover:underline"
+                  >
+                    {preview.itemNo}
+                  </a>{' · '}{preview.itemType}
+                </div>
               </div>
             </div>
           )}
@@ -269,7 +285,9 @@ export default function AddItemDrawer({ open, onClose, onAdded }: Props) {
               disabled={submitting || !itemNo.trim()}
               className="flex-1 px-4 py-2.5 rounded-lg bg-yellow-400 text-gray-900 text-sm font-semibold hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {submitting ? 'Adding...' : 'Add to Collection'}
+              {submitting
+                ? (isEdit ? 'Saving...' : 'Adding...')
+                : (isEdit ? 'Save Changes' : 'Add to Collection')}
             </button>
           </div>
         </form>

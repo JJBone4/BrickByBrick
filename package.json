@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup": "npm install && npm run db:local",
+    "postinstall": "prisma generate",
+    "db:local": "node scripts/seed-local.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

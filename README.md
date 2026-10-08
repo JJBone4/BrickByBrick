@@ -2,7 +2,23 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, install all dependencies and set up the local database:
+
+```bash
+npm run setup
+```
+
+This runs `npm install` (which also generates the Prisma client via `postinstall`) and creates a local PGlite database at `./local.db`. You only need to run it once, or again after pulling new dependencies — it's safe to re-run.
+
+Next, create your environment file from the template and fill in the values:
+
+```bash
+cp .env.example .env.local
+```
+
+Without a `DATABASE_URL`, the app uses the local database automatically. The BrickLink keys are needed for price lookups.
+
+Then, run the development server:
 
 ```bash
 npm run dev

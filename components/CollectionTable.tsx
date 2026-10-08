@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Pencil, Check, X } from 'lucide-react'
+import { Trash2, Pencil, X } from 'lucide-react'
 import { CollectionEntry } from '@/lib/types'
+import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
+import AddItemDrawer from '@/components/AddItemDrawer'
 
 interface Props {
   items: CollectionEntry[]
@@ -21,40 +23,20 @@ function gainColor(gain: number | null) {
   return 'text-gray-400'
 }
 
-interface EditState {
-  id: string
-  quantity: string
-  notes: string
-}
-
 export default function CollectionTable({ items, onRefresh }: Props) {
-  const [editing, setEditing] = useState<EditState | null>(null)
+  const [editing, setEditing] = useState<CollectionEntry | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-
-  async function saveEdit() {
-    if (!editing) return
-    setSaving(true)
-    try {
-      await fetch(`/api/collection/${editing.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quantity: Number(editing.quantity),
-          notes: editing.notes,
-        }),
-      })
-      setEditing(null)
-      onRefresh()
-    } finally {
-      setSaving(false)
-    }
-  }
+  const [deleting, setDeleting] = useState(false)
 
   async function deleteItem(id: string) {
-    await fetch(`/api/collection/${id}`, { method: 'DELETE' })
-    setConfirmDelete(null)
-    onRefresh()
+    setDeleting(true)
+    try {
+      await fetch(`/api/collection/${id}`, { method: 'DELETE' })
+      setConfirmDelete(null)
+      onRefresh()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (items.length === 0) {
@@ -80,12 +62,11 @@ export default function CollectionTable({ items, onRefresh }: Props) {
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Current Avg</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Gain/Loss</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-            <th className="px-4 py-3 w-20"></th>
+            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-800/50">
           {items.map((item) => {
-            const isEditing = editing?.id === item.id
             const avgPrice = item.snapshot?.avgPrice ?? null
             const costPerUnit = item.purchasePrice
             const gain =
@@ -104,7 +85,7 @@ export default function CollectionTable({ items, onRefresh }: Props) {
                   {item.meta?.imageUrl ? (
                     <img
                       src={item.meta.imageUrl}
-                      alt={item.meta.name}
+                      alt={formatItemName(item.meta.name)}
                       className="w-10 h-10 object-contain rounded bg-white p-0.5"
                     />
                   ) : (
@@ -116,10 +97,22 @@ export default function CollectionTable({ items, onRefresh }: Props) {
 
                 {/* Item name + ID */}
                 <td className="px-4 py-3">
-                  <div className="font-medium text-white">
-                    {item.meta?.name ?? item.itemNo}
+                  <div
+                    className="font-medium text-white"
+                    title={item.meta?.name ? decodeEntities(item.meta.name) : undefined}
+                  >
+                    {item.meta?.name ? formatItemName(item.meta.name) : item.itemNo}
                   </div>
-                  <div className="text-xs text-gray-500">{item.itemNo} · {item.itemType}</div>
+                  <div className="text-xs text-gray-500">
+                    <a
+                      href={bricklinkUrl(item.itemType, item.itemNo)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-400 hover:underline"
+                    >
+                      {item.itemNo}
+                    </a>{' · '}{item.itemType}
+                  </div>
                 </td>
 
                 {/* Condition */}
@@ -135,17 +128,7 @@ export default function CollectionTable({ items, onRefresh }: Props) {
 
                 {/* Quantity */}
                 <td className="px-4 py-3 text-right">
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      min="1"
-                      value={editing.quantity}
-                      onChange={(e) => setEditing({ ...editing, quantity: e.target.value })}
-                      className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm text-right focus:outline-none focus:border-yellow-400"
-                    />
-                  ) : (
-                    <span className="text-gray-200">{item.quantity}</span>
-                  )}
+                  <span className="text-gray-200">{item.quantity}</span>
                 </td>
 
                 {/* Paid */}
@@ -179,62 +162,43 @@ export default function CollectionTable({ items, onRefresh }: Props) {
 
                 {/* Notes */}
                 <td className="px-4 py-3 max-w-xs">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editing.notes}
-                      onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
-                      placeholder="Notes..."
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-yellow-400"
-                    />
-                  ) : (
-                    <span className="text-gray-400 text-xs line-clamp-2">{item.notes || '—'}</span>
-                  )}
+                  <span className="text-gray-400 text-xs line-clamp-2">{item.notes || '—'}</span>
                 </td>
 
                 {/* Actions */}
                 <td className="px-4 py-3">
-                  {isEditing ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={saveEdit}
-                        disabled={saving}
-                        className="p-1.5 rounded text-green-400 hover:bg-green-900/30 transition-colors"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        onClick={() => setEditing(null)}
-                        className="p-1.5 rounded text-gray-400 hover:bg-gray-700 transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : confirmDelete === item.id ? (
-                    <div className="flex items-center gap-1">
+                  {confirmDelete === item.id ? (
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => deleteItem(item.id)}
-                        className="px-2 py-1 rounded text-xs bg-red-600 text-white hover:bg-red-500 transition-colors"
+                        disabled={deleting}
+                        className="px-2 py-1 rounded text-xs bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
                       >
-                        Delete
+                        {deleting ? 'Deleting...' : 'Delete'}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
+                        title="Cancel"
+                        aria-label="Cancel delete"
                         className="p-1.5 rounded text-gray-400 hover:bg-gray-700 transition-colors"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => setEditing({ id: item.id, quantity: String(item.quantity), notes: item.notes ?? '' })}
+                        onClick={() => setEditing(item)}
+                        title="Edit"
+                        aria-label="Edit item"
                         className="p-1.5 rounded text-gray-400 hover:text-yellow-400 hover:bg-gray-700 transition-colors"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setConfirmDelete(item.id)}
+                        title="Delete"
+                        aria-label="Delete item"
                         className="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors"
                       >
                         <Trash2 size={14} />
@@ -247,6 +211,16 @@ export default function CollectionTable({ items, onRefresh }: Props) {
           })}
         </tbody>
       </table>
+
+      {editing && (
+        <AddItemDrawer
+          key={editing.id}
+          open
+          item={editing}
+          onClose={() => setEditing(null)}
+          onAdded={onRefresh}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-config({ path: ".env.local" });
+config({ path: [".env.local", ".env"], quiet: true });
 
 import { defineConfig } from "prisma/config";
 import { neonConfig } from "@neondatabase/serverless";
