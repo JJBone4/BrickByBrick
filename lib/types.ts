@@ -7,6 +7,7 @@ export interface CollectionEntry {
   purchasePrice: number | null
   purchaseDate: string | null
   notes: string | null
+  conditionTags: string[]
   createdAt: string
   updatedAt: string
   snapshot: PriceSnapshotData | null
@@ -41,4 +42,18 @@ export interface InvestmentData {
   gain: number
   gainPercent: number
   chartData: Array<{ date: string; marketValue: number; costBasis: number }>
+}
+
+export interface PriceSaleData {
+  condition: string
+  unitPrice: number
+  quantity: number
+  dateOrdered: string
+}
+
+export interface ItemDetail {
+  item: Omit<CollectionEntry, 'snapshot' | 'meta'>
+  meta: CachedItemData | null
+  snapshots: { N: PriceSnapshotData | null; U: PriceSnapshotData | null }
+  sales: PriceSaleData[]
 }

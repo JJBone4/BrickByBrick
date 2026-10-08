@@ -1,14 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Pencil, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Trash2, Pencil, X, Info } from 'lucide-react'
 import { CollectionEntry } from '@/lib/types'
-import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
+import { formatItemName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
+import ImageLightbox from '@/components/ImageLightbox'
 import AddItemDrawer from '@/components/AddItemDrawer'
+import ConditionTagList from '@/components/ConditionTagList'
 
 interface Props {
   items: CollectionEntry[]
   onRefresh: () => void
+  onSaved?: (message?: string) => void
 }
 
 function fmt(n: number | null | undefined, decimals = 2) {
@@ -23,8 +27,10 @@ function gainColor(gain: number | null) {
   return 'text-gray-400'
 }
 
-export default function CollectionTable({ items, onRefresh }: Props) {
+export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
+  const router = useRouter()
   const [editing, setEditing] = useState<CollectionEntry | null>(null)
+  const [zoomed, setZoomed] = useState<CollectionEntry | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -38,6 +44,22 @@ export default function CollectionTable({ items, onRefresh }: Props) {
       setDeleting(false)
     }
   }
+
+  // Header tooltip: when prices were updated. Normally all rows share one refresh, but items added
+  // or opened later get priced individually, so show a range if the dates differ.
+  const priceDays = items
+    .map((i) => i.snapshot?.capturedAt)
+    .filter((d): d is string => !!d)
+    .map((d) => new Date(d))
+    .sort((a, b) => a.getTime() - b.getTime())
+    .map((d) => d.toLocaleDateString('en-US'))
+  const oldestDay = priceDays[0]
+  const newestDay = priceDays[priceDays.length - 1]
+  const priceUpdatedText = !oldestDay
+    ? 'No prices yet'
+    : oldestDay === newestDay
+      ? `Prices were last updated on ${oldestDay}`
+      : `Prices were last updated between ${oldestDay} and ${newestDay}`
 
   if (items.length === 0) {
     return (
@@ -59,9 +81,27 @@ export default function CollectionTable({ items, onRefresh }: Props) {
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Qty</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Paid</th>
-            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Current Avg</th>
+            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+              {/* Custom tooltip: native `title` tooltips are slow and don't show in every browser.
+                  It opens downward because the table's rounded container clips anything above it. */}
+              <span
+                tabIndex={0}
+                aria-describedby="price-updated-tip"
+                className="group relative inline-flex items-center gap-1 outline-none"
+              >
+                Current Avg
+                <Info size={12} className="text-gray-600 group-hover:text-gray-300 group-focus:text-gray-300 transition-colors" />
+                <span
+                  id="price-updated-tip"
+                  role="tooltip"
+                  className="pointer-events-none absolute right-0 top-full mt-2 z-20 whitespace-nowrap rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-normal normal-case tracking-normal text-gray-200 shadow-xl opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+                >
+                  {priceUpdatedText}
+                </span>
+              </span>
+            </th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Gain/Loss</th>
-            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Actions</th>
           </tr>
         </thead>
@@ -79,15 +119,29 @@ export default function CollectionTable({ items, onRefresh }: Props) {
                 : null
 
             return (
-              <tr key={item.id} className="hover:bg-gray-800/30 transition-colors">
+              <tr
+                key={item.id}
+                onClick={() => router.push(`/collection/${item.id}`)}
+                className="hover:bg-gray-800/30 transition-colors cursor-pointer"
+              >
                 {/* Thumbnail */}
                 <td className="px-4 py-3">
                   {item.meta?.imageUrl ? (
-                    <img
-                      src={item.meta.imageUrl}
-                      alt={formatItemName(item.meta.name)}
-                      className="w-10 h-10 object-contain rounded bg-white p-0.5"
-                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation() // don't open the item page
+                        setZoomed(item)
+                      }}
+                      title="Enlarge image"
+                      aria-label="Enlarge image"
+                      className="block rounded cursor-zoom-in hover:ring-2 hover:ring-yellow-400 transition-shadow"
+                    >
+                      <img
+                        src={item.meta.imageUrl}
+                        alt={formatItemName(item.meta.name)}
+                        className="w-10 h-10 object-contain rounded bg-white p-0.5"
+                      />
+                    </button>
                   ) : (
                     <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-gray-600 text-xs">
                       ?
@@ -108,6 +162,7 @@ export default function CollectionTable({ items, onRefresh }: Props) {
                       href={bricklinkUrl(item.itemType, item.itemNo)}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="hover:text-blue-400 hover:underline"
                     >
                       {item.itemNo}
@@ -139,11 +194,6 @@ export default function CollectionTable({ items, onRefresh }: Props) {
                 {/* Current avg */}
                 <td className="px-4 py-3 text-right text-gray-200">
                   {fmt(avgPrice)}
-                  {item.snapshot && (
-                    <div className="text-xs text-gray-600">
-                      {new Date(item.snapshot.capturedAt).toLocaleDateString()}
-                    </div>
-                  )}
                 </td>
 
                 {/* Gain/Loss */}
@@ -160,13 +210,13 @@ export default function CollectionTable({ items, onRefresh }: Props) {
                   ) : '—'}
                 </td>
 
-                {/* Notes */}
+                {/* Condition details */}
                 <td className="px-4 py-3 max-w-xs">
-                  <span className="text-gray-400 text-xs line-clamp-2">{item.notes || '—'}</span>
+                  <ConditionTagList tags={item.conditionTags} notes={item.notes} compact />
                 </td>
 
                 {/* Actions */}
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 cursor-default" onClick={(e) => e.stopPropagation()}>
                   {confirmDelete === item.id ? (
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -212,13 +262,22 @@ export default function CollectionTable({ items, onRefresh }: Props) {
         </tbody>
       </table>
 
+      {zoomed?.meta?.imageUrl && (
+        <ImageLightbox
+          src={largeImageUrl(zoomed.itemType, zoomed.itemNo)}
+          fallbackSrc={zoomed.meta.imageUrl}
+          alt={`${formatItemName(zoomed.meta.name)} · ${zoomed.itemNo}`}
+          onClose={() => setZoomed(null)}
+        />
+      )}
+
       {editing && (
         <AddItemDrawer
           key={editing.id}
           open
           item={editing}
           onClose={() => setEditing(null)}
-          onAdded={onRefresh}
+          onAdded={onSaved ?? onRefresh}
         />
       )}
     </div>

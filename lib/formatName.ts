@@ -19,13 +19,15 @@ const COLOR = `(?:(?:${MODIFIERS})[- ])*(?:${BASES})`
 
 // "Light and Dark Gray" -> "Gray" (two shades sharing one color word)
 const SHARED_COLOR = new RegExp(`^(?:${MODIFIERS})\\s+and\\s+(?:(?:${MODIFIERS})[- ])*(${BASES})\\b`, 'i')
-const LEADING_COLOR = new RegExp(`^(${COLOR})\\b`, 'i')
+// Part words after the color are dropped ("Dark Bluish Gray Body" -> "Dark Bluish Gray"), except
+// "Head": head color is often what tells variants apart (e.g. SW0188 Black Head vs SW0188A Light Nougat Head)
+const LEADING_COLOR = new RegExp(`^(${COLOR})(\\s+Head\\b)?\\b`, 'i')
 
 function extractColor(variant: string): string | null {
   const shared = variant.match(SHARED_COLOR)
   if (shared) return shared[1]
   const lead = variant.match(LEADING_COLOR)
-  return lead ? lead[1] : null
+  return lead ? lead[1] + (lead[2] ? ' Head' : '') : null
 }
 
 export function formatItemName(raw: string): string {
@@ -33,18 +35,21 @@ export function formatItemName(raw: string): string {
     .replace(/\(Phase\s+(\d+)\)/gi, '(P$1)')
     .trim()
 
-  // Variant text follows the last top-level " - " or ", " (ignoring anything inside parentheses)
+  // The variant is the first top-level " - " or ", " section (ignoring anything inside parentheses)
+  // that starts with a color, e.g. "Snowtrooper, Light Bluish Gray Hips, White Hands" -> "Light Bluish Gray".
+  // Sections that aren't colors, like "187th Legion" in "Clone Trooper Commander, 187th Legion - Nougat Head",
+  // stay part of the base name.
   const topLevel = name.replace(/\([^)]*\)/g, (m) => '\0'.repeat(m.length))
-  let sep = topLevel.lastIndexOf(' - ')
-  let sepLen = 3
-  if (sep === -1) {
-    sep = topLevel.lastIndexOf(', ')
-    sepLen = 2
+  let sep = -1
+  let color: string | null = null
+  for (const m of topLevel.matchAll(/ - |, /g)) {
+    color = extractColor(name.slice(m.index + m[0].length))
+    if (color) {
+      sep = m.index
+      break
+    }
   }
-  if (sep === -1) return name
-
-  const color = extractColor(name.slice(sep + sepLen))
-  if (!color) return name // variant isn't a color (e.g. "Luke Skywalker, Tatooine") — keep it as-is
+  if (!color) return name // no color section (e.g. "Luke Skywalker, Tatooine") — keep it as-is
 
   // Drop alias parentheticals like "(GNK Power Droid)", but keep phase tags like "(P2)"
   const base = name
@@ -59,4 +64,12 @@ const CATALOG_TYPE: Record<string, string> = { MINIFIG: 'M', SET: 'S' }
 export function bricklinkUrl(itemType: string, itemNo: string): string {
   const t = CATALOG_TYPE[itemType.toUpperCase()] ?? 'M'
   return `https://www.bricklink.com/v2/catalog/catalogitem.page?${t}=${encodeURIComponent(itemNo)}`
+}
+
+const IMAGE_TYPE: Record<string, string> = { MINIFIG: 'MN', SET: 'SN' }
+
+/** BrickLink's large catalog image (the stored imageUrl is a small ~60px thumbnail) */
+export function largeImageUrl(itemType: string, itemNo: string): string {
+  const t = IMAGE_TYPE[itemType.toUpperCase()] ?? 'MN'
+  return `https://img.bricklink.com/ItemImage/${t}/0/${encodeURIComponent(itemNo.toLowerCase())}.png`
 }

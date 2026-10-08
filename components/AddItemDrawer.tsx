@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X } from 'lucide-react'
+import { X, Check } from 'lucide-react'
 import { CachedItemData, CollectionEntry } from '@/lib/types'
 import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
+import { tagGroups, toggleTag as toggleTagIn } from '@/lib/conditionTags'
 
 interface Props {
   open: boolean
   onClose: () => void
-  onAdded: () => void
+  /** Called after a successful save, with a short message to show the user */
+  onAdded: (message?: string) => void
   /** When set, the drawer edits this item instead of adding a new one */
   item?: CollectionEntry | null
 }
@@ -28,7 +30,7 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
   const [quantity, setQuantity] = useState(item ? String(item.quantity) : '1')
   const [purchasePrice, setPurchasePrice] = useState(item?.purchasePrice != null ? String(item.purchasePrice) : '')
   const [purchaseDate, setPurchaseDate] = useState(item?.purchaseDate?.slice(0, 10) ?? '')
-  const [notes, setNotes] = useState(item?.notes ?? '')
+  const [conditionTags, setConditionTags] = useState<string[]>(item?.conditionTags ?? [])
   const [preview, setPreview] = useState<CachedItemData | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
@@ -63,6 +65,13 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
     return () => clearTimeout(timer)
   }, [itemNo, itemType, fetchPreview])
 
+  const groups = tagGroups(itemType)
+  const availableTags = new Set(groups.flatMap(([, tags]) => tags.map((t) => t.key)))
+
+  function toggleTag(key: string) {
+    setConditionTags((prev) => toggleTagIn(prev, key))
+  }
+
   function reset() {
     setItemNo('')
     setItemType('MINIFIG')
@@ -70,7 +79,7 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
     setQuantity('1')
     setPurchasePrice('')
     setPurchaseDate('')
-    setNotes('')
+    setConditionTags([])
     setPreview(null)
     setPreviewError('')
     setError('')
@@ -91,15 +100,29 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
           quantity: Number(quantity),
           purchasePrice: purchasePrice ? Number(purchasePrice) : null,
           purchaseDate: purchaseDate || null,
-          notes: notes.trim() || null,
+          // Only send tags that apply to the selected type (e.g. drop 'Sealed' if switched to a minifig)
+          conditionTags: conditionTags.filter((t) => availableTags.has(t)),
         }),
       })
       if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.error || (isEdit ? 'Failed to save changes' : 'Failed to add item'))
+        // Server errors (500) may have an empty body, so don't assume JSON
+        const d = await res.json().catch(() => ({}))
+        throw new Error(
+          d.error ||
+            `${isEdit ? 'Failed to save changes' : 'Failed to add item'} (server error ${res.status}). Check the terminal running npm run dev.`
+        )
       }
+      const saved = await res.json()
+      const name = preview?.name ? formatItemName(preview.name) : saved.itemNo
+      const message = isEdit
+        ? saved.merged
+          ? `Combined with matching row — ${name} count: ${saved.quantity}`
+          : `Saved changes to ${name}`
+        : saved.merged
+          ? `Added to ${name} count: ${saved.quantity}`
+          : `Added ${name} to your collection`
       reset()
-      onAdded()
+      onAdded(message)
       onClose()
     } catch (err: any) {
       setError(err.message)
@@ -252,18 +275,56 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Condition details */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Notes (condition, chips, cracks, etc.)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="e.g. minor scuff on torso, missing cape..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-yellow-400 resize-none"
-            />
+            <div className="flex items-baseline justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-400">
+                Condition details <span className="text-gray-600">(check all that apply)</span>
+              </label>
+              {conditionTags.some((t) => availableTags.has(t)) && (
+                <button
+                  type="button"
+                  onClick={() => setConditionTags([])}
+                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              {groups.map(([group, tags]) => (
+                <fieldset key={group}>
+                  <legend className="text-[11px] uppercase tracking-wider text-gray-600 mb-1.5">{group}</legend>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => {
+                      const checked = conditionTags.includes(tag.key)
+                      return (
+                        <button
+                          key={tag.key}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          onClick={() => toggleTag(tag.key)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                            checked
+                              ? 'bg-yellow-400/15 border-yellow-400 text-yellow-300'
+                              : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                          }`}
+                        >
+                          {checked && <Check size={12} />}
+                          {tag.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </fieldset>
+              ))}
+            </div>
+            {item?.notes && (
+              <p className="text-xs text-gray-500 mt-3">
+                <span className="text-gray-600">Earlier notes:</span> {item.notes}
+              </p>
+            )}
           </div>
 
           {error && (
