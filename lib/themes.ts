@@ -32,6 +32,7 @@ const THEME_PREFIXES: Record<string, string> = {
 }
 
 export function getTheme(itemNo: string, itemType: string): string {
+  if (itemType.toUpperCase() === 'BIGFIG') return 'Big Figs' // part numbers carry no theme prefix
   const letters = itemNo.match(/^[A-Za-z]+/)?.[0]?.toUpperCase()
   if (!letters) return itemType.toUpperCase() === 'SET' ? 'Sets' : 'Other'
 

@@ -1,3 +1,5 @@
+import type { AppItemType } from './itemTypes'
+
 // Checkbox options describing an item's condition. The `key` is what's stored in the
 // database, so keep keys stable; labels can be reworded freely.
 
@@ -5,12 +7,13 @@ export interface ConditionTag {
   key: string
   label: string
   group: string
-  appliesTo: ('MINIFIG' | 'SET')[]
+  appliesTo: AppItemType[]
   /** Opposite tag that gets unchecked when this one is checked */
   opposite?: string
 }
 
-const BOTH: ConditionTag['appliesTo'] = ['MINIFIG', 'SET']
+const BOTH: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG', 'SET']
+const FIGS: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG']
 
 export const CONDITION_TAGS: ConditionTag[] = [
   // Minifig damage
@@ -24,29 +27,29 @@ export const CONDITION_TAGS: ConditionTag[] = [
   { key: 'light-scratches', label: 'Light scratches', group: 'Wear', appliesTo: BOTH },
   { key: 'heavy-scratches', label: 'Heavy scratches', group: 'Wear', appliesTo: BOTH },
   { key: 'print-wear', label: 'Print wear', group: 'Wear', appliesTo: BOTH },
-  { key: 'arm-swing-marks', label: 'Arm swing marks', group: 'Wear', appliesTo: ['MINIFIG'] },
+  { key: 'arm-swing-marks', label: 'Arm swing marks', group: 'Wear', appliesTo: FIGS },
   { key: 'fading', label: 'Fading', group: 'Wear', appliesTo: BOTH },
   { key: 'yellowing', label: 'Yellowing', group: 'Wear', appliesTo: BOTH },
   { key: 'dirty', label: 'Dirty / needs cleaning', group: 'Wear', appliesTo: BOTH },
 
   // Minifig fit
-  { key: 'firm-arms', label: 'Firm arms', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'loose-arms' },
-  { key: 'loose-arms', label: 'Loose arms', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'firm-arms' },
-  { key: 'firm-hands', label: 'Firm hands', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'loose-hands' },
-  { key: 'loose-hands', label: 'Loose hands', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'firm-hands' },
-  { key: 'firm-legs', label: 'Firm legs', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'loose-legs' },
-  { key: 'loose-legs', label: 'Loose legs', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'firm-legs' },
-  { key: 'firm-head', label: 'Firm head', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'loose-head' },
-  { key: 'loose-head', label: 'Loose head', group: 'Fit', appliesTo: ['MINIFIG'], opposite: 'firm-head' },
+  { key: 'firm-arms', label: 'Firm arms', group: 'Fit', appliesTo: FIGS, opposite: 'loose-arms' },
+  { key: 'loose-arms', label: 'Loose arms', group: 'Fit', appliesTo: FIGS, opposite: 'firm-arms' },
+  { key: 'firm-hands', label: 'Firm hands', group: 'Fit', appliesTo: FIGS, opposite: 'loose-hands' },
+  { key: 'loose-hands', label: 'Loose hands', group: 'Fit', appliesTo: FIGS, opposite: 'firm-hands' },
+  { key: 'firm-legs', label: 'Firm legs', group: 'Fit', appliesTo: FIGS, opposite: 'loose-legs' },
+  { key: 'loose-legs', label: 'Loose legs', group: 'Fit', appliesTo: FIGS, opposite: 'firm-legs' },
+  { key: 'firm-head', label: 'Firm head', group: 'Fit', appliesTo: FIGS, opposite: 'loose-head' },
+  { key: 'loose-head', label: 'Loose head', group: 'Fit', appliesTo: FIGS, opposite: 'firm-head' },
 
   // Minifig completeness
-  { key: 'with-accessories', label: 'With accessories', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'missing-accessory', label: 'Missing accessory', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'missing-part', label: 'Missing part', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'non-original-part', label: 'Non-original part', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'wrong-head', label: 'Wrong head', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'wrong-body', label: 'Wrong body', group: 'Completeness', appliesTo: ['MINIFIG'] },
-  { key: 'wrong-legs', label: 'Wrong legs', group: 'Completeness', appliesTo: ['MINIFIG'] },
+  { key: 'with-accessories', label: 'With accessories', group: 'Completeness', appliesTo: FIGS },
+  { key: 'missing-accessory', label: 'Missing accessory', group: 'Completeness', appliesTo: FIGS },
+  { key: 'missing-part', label: 'Missing part', group: 'Completeness', appliesTo: FIGS },
+  { key: 'non-original-part', label: 'Non-original part', group: 'Completeness', appliesTo: FIGS },
+  { key: 'wrong-head', label: 'Wrong head', group: 'Completeness', appliesTo: FIGS },
+  { key: 'wrong-body', label: 'Wrong body', group: 'Completeness', appliesTo: FIGS },
+  { key: 'wrong-legs', label: 'Wrong legs', group: 'Completeness', appliesTo: FIGS },
 
   // Set box & contents
   { key: 'sealed', label: 'Sealed', group: 'Box', appliesTo: ['SET'] },
@@ -75,7 +78,7 @@ export function tagLabel(key: string): string {
 export function tagGroups(itemType: string): [string, ConditionTag[]][] {
   const groups = new Map<string, ConditionTag[]>()
   for (const tag of CONDITION_TAGS) {
-    if (!tag.appliesTo.includes(itemType.toUpperCase() as 'MINIFIG' | 'SET')) continue
+    if (!tag.appliesTo.includes(itemType.toUpperCase() as AppItemType)) continue
     groups.set(tag.group, [...(groups.get(tag.group) ?? []), tag])
   }
   return [...groups.entries()]

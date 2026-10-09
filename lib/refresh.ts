@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { getPriceGuide, BricklinkItemType, BricklinkCondition } from './bricklink'
+import { updateRetirement } from './retirement'
 
 const CONDITIONS: BricklinkCondition[] = ['N', 'U']
 
@@ -67,6 +68,7 @@ export async function ensureFreshPrices(itemNo: string, itemType: string): Promi
   const conditionsFresh = new Set(recent.map((r) => r.condition)).size
   const salesMissing = savedSales === 0 && recent.some((r) => r.totalLots > 0)
   if (conditionsFresh < 2 || salesMissing) await syncItemPrices(itemNo, itemType)
+  await updateRetirement([{ itemNo, itemType }]) // no-op if checked this week
 }
 
 export async function refreshPrices(): Promise<{ refreshed: number; errors: string[] }> {
@@ -83,6 +85,8 @@ export async function refreshPrices(): Promise<{ refreshed: number; errors: stri
     if (itemErrors.length === 0) refreshed++
     errors.push(...itemErrors)
   }
+
+  errors.push(...(await updateRetirement(items)))
 
   return { refreshed, errors }
 }

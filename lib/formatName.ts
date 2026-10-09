@@ -59,17 +59,5 @@ export function formatItemName(raw: string): string {
   return `${base} (${color})`
 }
 
-const CATALOG_TYPE: Record<string, string> = { MINIFIG: 'M', SET: 'S' }
-
-export function bricklinkUrl(itemType: string, itemNo: string): string {
-  const t = CATALOG_TYPE[itemType.toUpperCase()] ?? 'M'
-  return `https://www.bricklink.com/v2/catalog/catalogitem.page?${t}=${encodeURIComponent(itemNo)}`
-}
-
-const IMAGE_TYPE: Record<string, string> = { MINIFIG: 'MN', SET: 'SN' }
-
-/** BrickLink's large catalog image (the stored imageUrl is a small ~60px thumbnail) */
-export function largeImageUrl(itemType: string, itemNo: string): string {
-  const t = IMAGE_TYPE[itemType.toUpperCase()] ?? 'MN'
-  return `https://img.bricklink.com/ItemImage/${t}/0/${encodeURIComponent(itemNo.toLowerCase())}.png`
-}
+// Link/image helpers moved to itemTypes (they depend on the item type); re-exported for existing imports
+export { bricklinkUrl, largeImageUrl } from './itemTypes'

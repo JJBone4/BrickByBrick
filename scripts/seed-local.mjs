@@ -39,6 +39,8 @@ await db.exec(`
     "imageUrl" TEXT,
     "categoryName" TEXT,
     "lastFetched" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "retired" BOOLEAN,
+    "retiredCheckedAt" TIMESTAMP,
     CONSTRAINT "CachedItem_pkey" PRIMARY KEY ("itemNo","itemType")
   );
 

@@ -1,10 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, Check, Image as ImageIcon } from 'lucide-react'
 import { CachedItemData, CollectionEntry } from '@/lib/types'
 import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
 import { tagGroups, toggleTag as toggleTagIn } from '@/lib/conditionTags'
+import { ITEM_TYPES, typeLabel } from '@/lib/itemTypes'
+
+const ID_PLACEHOLDER: Record<string, string> = {
+  MINIFIG: 'e.g. SW0038',
+  BIGFIG: 'e.g. SW0071 or 11323pb01c01',
+  SET: 'e.g. 75192-1',
+}
 
 interface Props {
   open: boolean
@@ -15,7 +22,6 @@ interface Props {
   item?: CollectionEntry | null
 }
 
-const ITEM_TYPES = ['MINIFIG', 'SET']
 const CONDITIONS = [
   { value: 'N', label: 'New' },
   { value: 'U', label: 'Used' },
@@ -64,6 +70,14 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
     }, 600)
     return () => clearTimeout(timer)
   }, [itemNo, itemType, fetchPreview])
+
+  function changeType(type: string) {
+    setItemType(type)
+    // An ID from one type doesn't mean anything for another, so start the lookup over
+    setItemNo('')
+    setPreview(null)
+    setPreviewError('')
+  }
 
   const groups = tagGroups(itemType)
   const availableTags = new Set(groups.flatMap(([, tags]) => tags.map((t) => t.key)))
@@ -151,8 +165,22 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 p-5 flex flex-col gap-4">
-          {/* Item ID */}
+          {/* Type + Item ID */}
           <div className="flex gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">
+                Type
+              </label>
+              <select
+                value={itemType}
+                onChange={(e) => changeType(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400"
+              >
+                {ITEM_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-400 mb-1">
                 Item ID
@@ -161,60 +189,77 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
                 type="text"
                 value={itemNo}
                 onChange={(e) => setItemNo(e.target.value)}
-                placeholder="e.g. SW0038"
+                placeholder={ID_PLACEHOLDER[itemType] ?? ID_PLACEHOLDER.MINIFIG}
                 required
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-yellow-400"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">
-                Type
-              </label>
-              <select
-                value={itemType}
-                onChange={(e) => setItemType(e.target.value)}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400"
-              >
-                {ITEM_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          {/* Preview */}
-          {previewLoading && (
-            <div className="text-sm text-gray-400 animate-pulse">Looking up item...</div>
-          )}
-          {previewError && (
-            <div className="text-sm text-red-400">{previewError}</div>
-          )}
-          {preview && (
-            <div className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
-              {preview.imageUrl && (
-                <img
-                  src={preview.imageUrl}
-                  alt={formatItemName(preview.name)}
-                  className="w-12 h-12 object-contain rounded"
-                />
-              )}
-              <div>
-                <div className="text-sm font-medium text-white" title={decodeEntities(preview.name)}>
-                  {formatItemName(preview.name)}
-                </div>
-                <div className="text-xs text-gray-400">
-                  <a
-                    href={bricklinkUrl(preview.itemType, preview.itemNo)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-400 hover:underline"
+          {/* Preview: always takes the same space so the form doesn't shift while typing */}
+          {(() => {
+            const typedId = itemNo.trim().toUpperCase()
+            // Until the lookup for the typed ID finishes (including the debounce pause), show loading
+            const state = !typedId
+              ? 'empty'
+              : previewLoading
+                ? 'loading'
+                : preview && preview.itemNo.toUpperCase() === typedId && preview.itemType === itemType
+                  ? 'found'
+                  : previewError
+                    ? 'error'
+                    : 'loading'
+            return (
+              <div
+                aria-live="polite"
+                className="flex items-center gap-3 h-[74px] p-3 bg-gray-800 rounded-lg border border-gray-700"
+              >
+                {state === 'found' && preview?.imageUrl ? (
+                  <img
+                    src={preview.imageUrl}
+                    alt={formatItemName(preview.name)}
+                    className="w-12 h-12 shrink-0 object-contain rounded"
+                  />
+                ) : (
+                  <div
+                    className={`w-12 h-12 shrink-0 rounded flex items-center justify-center bg-gray-700/50 text-gray-600 ${
+                      state === 'loading' ? 'animate-pulse' : ''
+                    }`}
                   >
-                    {preview.itemNo}
-                  </a>{' · '}{preview.itemType}
+                    <ImageIcon size={18} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {state === 'found' && preview ? (
+                    <>
+                      <div className="text-sm font-medium text-white truncate" title={decodeEntities(preview.name)}>
+                        {formatItemName(preview.name)}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        <a
+                          href={bricklinkUrl(preview.itemType, preview.itemNo)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-400 hover:underline"
+                        >
+                          {preview.itemNo}
+                        </a>{' · '}{typeLabel(preview.itemType)}
+                      </div>
+                    </>
+                  ) : state === 'loading' ? (
+                    <div className="space-y-2 animate-pulse" aria-label="Looking up item">
+                      <div className="h-3.5 w-2/3 rounded bg-gray-700" />
+                      <div className="h-3 w-1/3 rounded bg-gray-700" />
+                    </div>
+                  ) : state === 'error' ? (
+                    <div className="text-sm text-red-400">{previewError}</div>
+                  ) : (
+                    <div className="text-sm text-gray-500">Enter an item ID to look it up on BrickLink</div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Condition + Quantity */}
           <div className="flex gap-3">

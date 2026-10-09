@@ -1,5 +1,6 @@
 import OAuth from 'oauth-1.0a'
 import crypto from 'crypto'
+import { toBricklinkType } from './itemTypes'
 
 const BASE_URL = 'https://api.bricklink.com/api/store/v1'
 
@@ -48,7 +49,8 @@ async function bricklinkFetch(path: string): Promise<any> {
   return json.data
 }
 
-export type BricklinkItemType = 'MINIFIG' | 'SET'
+/** App item type ('MINIFIG' | 'BIGFIG' | 'SET'); mapped to BrickLink's catalog type before each call */
+export type BricklinkItemType = string
 export type BricklinkCondition = 'N' | 'U'
 
 export interface BricklinkItem {
@@ -58,6 +60,7 @@ export interface BricklinkItem {
   category_id: number
   thumbnail_url: string
   image_url: string
+  year_released?: number
 }
 
 export interface BricklinkPriceGuide {
@@ -81,7 +84,7 @@ export interface BricklinkPriceGuide {
 }
 
 export async function getItem(type: BricklinkItemType, no: string): Promise<BricklinkItem> {
-  return bricklinkFetch(`/items/${type}/${no}`)
+  return bricklinkFetch(`/items/${toBricklinkType(type, no)}/${encodeURIComponent(no)}`)
 }
 
 export async function getPriceGuide(
@@ -90,6 +93,14 @@ export async function getPriceGuide(
   condition: BricklinkCondition
 ): Promise<BricklinkPriceGuide> {
   return bricklinkFetch(
-    `/items/${type}/${no}/price?guide_type=sold&new_or_used=${condition}&currency_code=USD`
+    `/items/${toBricklinkType(type, no)}/${encodeURIComponent(no)}/price?guide_type=sold&new_or_used=${condition}&currency_code=USD`
   )
+}
+
+/** Set numbers (e.g. "8014-1") of every set an item appears in */
+export async function getSupersetSets(type: BricklinkItemType, no: string): Promise<string[]> {
+  const groups = (await bricklinkFetch(
+    `/items/${toBricklinkType(type, no)}/${encodeURIComponent(no)}/supersets`
+  )) as { entries: { item: { no: string; type: string } }[] }[]
+  return [...new Set(groups.flatMap((g) => g.entries).filter((e) => e.item.type === 'SET').map((e) => e.item.no))]
 }

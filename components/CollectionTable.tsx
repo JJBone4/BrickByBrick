@@ -6,6 +6,8 @@ import { Trash2, Pencil, X, Info } from 'lucide-react'
 import { CollectionEntry } from '@/lib/types'
 import { formatItemName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
 import ImageLightbox from '@/components/ImageLightbox'
+import { typeLabel } from '@/lib/itemTypes'
+import StatusBadge from '@/components/StatusBadge'
 import AddItemDrawer from '@/components/AddItemDrawer'
 import ConditionTagList from '@/components/ConditionTagList'
 
@@ -17,7 +19,9 @@ interface Props {
 
 function fmt(n: number | null | undefined, decimals = 2) {
   if (n == null) return '—'
-  return `$${n.toFixed(decimals)}`
+  // Sign before the $ so losses read "-$5.00" rather than "$-5.00"
+  const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+  return `${n < 0 ? '-' : ''}$${abs}`
 }
 
 function gainColor(gain: number | null) {
@@ -101,6 +105,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
               </span>
             </th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Gain/Loss</th>
+            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
             <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Actions</th>
           </tr>
@@ -166,7 +171,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
                       className="hover:text-blue-400 hover:underline"
                     >
                       {item.itemNo}
-                    </a>{' · '}{item.itemType}
+                    </a>{' · '}{typeLabel(item.itemType)}
                   </div>
                 </td>
 
@@ -208,6 +213,11 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
                       )}
                     </>
                   ) : '—'}
+                </td>
+
+                {/* Retired / Active */}
+                <td className="px-4 py-3">
+                  <StatusBadge retired={item.meta?.retired} />
                 </td>
 
                 {/* Condition details */}

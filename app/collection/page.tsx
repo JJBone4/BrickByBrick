@@ -18,6 +18,10 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'current', label: 'Current price' },
 ]
 
+function usd(n: number) {
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 function sortValue(item: CollectionEntry, key: SortKey): string | number | null {
   switch (key) {
     case 'added': return new Date(item.createdAt).getTime()
@@ -36,6 +40,7 @@ export default function CollectionPage() {
   const [search, setSearch] = useState('')
   const [themeFilter, setThemeFilter] = useState('')
   const [conditionFilter, setConditionFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('added')
   const [sortAsc, setSortAsc] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -108,7 +113,11 @@ export default function CollectionPage() {
     (item) =>
       matchesSearch(item) &&
       (!themeFilter || getTheme(item.itemNo, item.itemType) === themeFilter) &&
-      (!conditionFilter || item.condition === conditionFilter)
+      (!conditionFilter || item.condition === conditionFilter) &&
+      (!statusFilter ||
+        (statusFilter === 'retired' && item.meta?.retired === true) ||
+        (statusFilter === 'active' && item.meta?.retired === false) ||
+        (statusFilter === 'unknown' && item.meta?.retired == null))
   )
   const isFiltered = filtered.length !== items.length
 
@@ -116,13 +125,17 @@ export default function CollectionPage() {
   const countUnits = (list: CollectionEntry[], type: string) =>
     list.filter((i) => i.itemType === type).reduce((n, i) => n + i.quantity, 0)
   const counts = [
-    { type: 'MINIFIG', one: 'minifig', many: 'minifigs' },
-    { type: 'SET', one: 'set', many: 'sets' },
-  ].map(({ type, one, many }) => {
-    const total = countUnits(items, type)
-    const shown = countUnits(filtered, type)
-    return `${isFiltered ? `${shown} of ` : ''}${total} ${total === 1 ? one : many}`
-  })
+    { type: 'MINIFIG', one: 'minifig', many: 'minifigs', always: true },
+    { type: 'BIGFIG', one: 'big fig', many: 'big figs', always: false },
+    { type: 'SET', one: 'set', many: 'sets', always: true },
+  ]
+    // Big figs only appear in the header once you own one
+    .filter(({ type, always }) => always || countUnits(items, type) > 0)
+    .map(({ type, one, many }) => {
+      const total = countUnits(items, type)
+      const shown = countUnits(filtered, type)
+      return `${isFiltered ? `${shown} of ` : ''}${total} ${total === 1 ? one : many}`
+    })
 
   const sorted = [...filtered].sort((a, b) => {
     const va = sortValue(a, sortKey)
@@ -151,11 +164,11 @@ export default function CollectionPage() {
           <p className="text-sm text-gray-500 mt-0.5">
             {counts.join(' / ')} ·{' '}
             <span className="text-yellow-400 font-medium">
-              ${totalValue.toFixed(2)}
+              {usd(totalValue)}
             </span>{' '}
             current value
             {totalCost > 0 && (
-              <> · <span className="text-gray-400">${totalCost.toFixed(2)} invested</span></>
+              <> · <span className="text-gray-400">{usd(totalCost)} invested</span></>
             )}
           </p>
         </div>
@@ -223,9 +236,20 @@ export default function CollectionPage() {
             <option value="N">New</option>
             <option value="U">Used</option>
           </select>
-          {(search || themeFilter || conditionFilter) && (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filter by retired or active"
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400"
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="retired">Retired</option>
+            {items.some((i) => i.meta?.retired == null) && <option value="unknown">Unknown</option>}
+          </select>
+          {(search || themeFilter || conditionFilter || statusFilter) && (
             <button
-              onClick={() => { setSearch(''); setThemeFilter(''); setConditionFilter('') }}
+              onClick={() => { setSearch(''); setThemeFilter(''); setConditionFilter(''); setStatusFilter('') }}
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Clear filters

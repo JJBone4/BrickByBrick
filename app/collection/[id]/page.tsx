@@ -9,6 +9,7 @@ import { formatItemName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/l
 import ImageLightbox from '@/components/ImageLightbox'
 import { getTheme } from '@/lib/themes'
 import ConditionTagList from '@/components/ConditionTagList'
+import StatusBadge from '@/components/StatusBadge'
 
 type Range = '3M' | '6M' | '1Y' | 'ALL'
 const RANGES: { value: Range; label: string; months: number | null }[] = [
@@ -196,6 +197,12 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
             }`}>
               {item.condition === 'N' ? 'New' : 'Used'}
             </span>
+            {meta?.retired != null && (
+              <>
+                <span>·</span>
+                <StatusBadge retired={meta.retired} />
+              </>
+            )}
           </div>
           {meta?.name && (
             <p className="text-xs text-gray-500 mt-1">{decodeEntities(meta.name)}</p>

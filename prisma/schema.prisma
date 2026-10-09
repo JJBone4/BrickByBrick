@@ -45,6 +45,10 @@ model CachedItem {
   imageUrl     String?
   categoryName String?
   lastFetched  DateTime @default(now())
+  // Retirement (from Brickset): true = every set it came in has retired, false = still on sale,
+  // null = unknown (no Brickset key, or no dates for its sets)
+  retired          Boolean?
+  retiredCheckedAt DateTime?
 
   @@id([itemNo, itemType])
 }

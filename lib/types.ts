@@ -34,6 +34,7 @@ export interface CachedItemData {
   imageUrl: string | null
   categoryName: string | null
   lastFetched: string
+  retired?: boolean | null // null/undefined = unknown
 }
 
 export interface InvestmentData {
