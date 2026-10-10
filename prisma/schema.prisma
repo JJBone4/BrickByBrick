@@ -11,6 +11,8 @@ model CollectionItem {
   id            String    @id @default(cuid())
   itemNo        String
   itemType      String
+  // Custom display name; null = use the name from BrickLink
+  name          String?
   condition     String
   quantity      Int       @default(1)
   purchasePrice Float?
@@ -69,4 +71,17 @@ model PriceSale {
 
   @@unique([itemNo, itemType, condition, dateOrdered, unitPrice, quantity])
   @@index([itemNo, itemType, condition, dateOrdered])
+}
+
+// Items the user wants but doesn't own. Kept separate from CollectionItem so they never count
+// toward portfolio value; they still get prices and retirement status from the regular refresh.
+model WishlistItem {
+  id        String   @id @default(cuid())
+  itemNo    String
+  itemType  String
+  condition String // condition wanted: N or U
+  maxPrice  Float? // optional target price to watch for
+  createdAt DateTime @default(now())
+
+  @@unique([itemNo, itemType, condition])
 }

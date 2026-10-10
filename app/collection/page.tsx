@@ -6,7 +6,7 @@ import CollectionTable from '@/components/CollectionTable'
 import AddItemDrawer from '@/components/AddItemDrawer'
 import { CollectionEntry } from '@/lib/types'
 import { getTheme } from '@/lib/themes'
-import { formatItemName, decodeEntities } from '@/lib/formatName'
+import { displayName, decodeEntities } from '@/lib/formatName'
 
 type SortKey = 'added' | 'name' | 'quantity' | 'paid' | 'current'
 
@@ -25,7 +25,7 @@ function usd(n: number) {
 function sortValue(item: CollectionEntry, key: SortKey): string | number | null {
   switch (key) {
     case 'added': return new Date(item.createdAt).getTime()
-    case 'name': return item.meta?.name ? formatItemName(item.meta.name) : item.itemNo
+    case 'name': return displayName(item, item.meta)
     case 'quantity': return item.quantity
     case 'paid': return item.purchasePrice
     case 'current': return item.snapshot?.avgPrice ?? null
@@ -105,9 +105,8 @@ export default function CollectionPage() {
   const matchesSearch = (item: CollectionEntry) =>
     !query ||
     item.itemNo.toLowerCase().includes(query) ||
-    (!!item.meta?.name &&
-      (formatItemName(item.meta.name).toLowerCase().includes(query) ||
-        decodeEntities(item.meta.name).toLowerCase().includes(query)))
+    displayName(item, item.meta).toLowerCase().includes(query) ||
+    (!!item.meta?.name && decodeEntities(item.meta.name).toLowerCase().includes(query))
 
   const filtered = items.filter(
     (item) =>

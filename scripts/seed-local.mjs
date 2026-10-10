@@ -64,6 +64,22 @@ await db.exec(`
   CREATE INDEX IF NOT EXISTS "PriceSale_itemNo_itemType_condition_dateOrdered_idx"
     ON "PriceSale"("itemNo", "itemType", "condition", "dateOrdered");
 
+  CREATE TABLE IF NOT EXISTS "WishlistItem" (
+    "id" TEXT NOT NULL,
+    "itemNo" TEXT NOT NULL,
+    "itemType" TEXT NOT NULL,
+    "condition" TEXT NOT NULL,
+    "maxPrice" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "WishlistItem_pkey" PRIMARY KEY ("id")
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS "WishlistItem_itemNo_itemType_condition_key"
+    ON "WishlistItem"("itemNo", "itemType", "condition");
+
+  -- Added after the table was first created, so existing local databases need the column too
+  ALTER TABLE "CollectionItem" ADD COLUMN IF NOT EXISTS "name" TEXT;
+
   CREATE INDEX IF NOT EXISTS "CollectionItem_itemNo_itemType_idx"
     ON "CollectionItem"("itemNo", "itemType");
 

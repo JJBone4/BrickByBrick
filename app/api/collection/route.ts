@@ -30,7 +30,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { itemNo, itemType, condition, quantity, purchasePrice, purchaseDate, conditionTags } = body
+  const { itemNo, itemType, name, condition, quantity, purchasePrice, purchaseDate, conditionTags } = body
 
   if (!itemNo || !itemType || !condition) {
     return Response.json({ error: 'itemNo, itemType, and condition are required' }, { status: 400 })
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   const data = {
     itemNo: itemNo.trim().toUpperCase(),
     itemType: itemType.toUpperCase(),
+    name: typeof name === 'string' && name.trim() ? name.trim() : null,
     condition: condition.toUpperCase(),
     purchasePrice: purchasePrice ? Number(purchasePrice) : null,
     purchaseDate: purchaseDate ? new Date(purchaseDate) : null,

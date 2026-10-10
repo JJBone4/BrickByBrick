@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import PriceHistoryChart, { SalePoint, AvgPoint } from '@/components/PriceHistoryChart'
 import { ItemDetail } from '@/lib/types'
-import { formatItemName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
+import { displayName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
 import ImageLightbox from '@/components/ImageLightbox'
 import { getTheme } from '@/lib/themes'
 import ConditionTagList from '@/components/ConditionTagList'
@@ -152,7 +152,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
         <ImageLightbox
           src={largeImageUrl(item.itemType, item.itemNo)}
           fallbackSrc={meta.imageUrl}
-          alt={`${formatItemName(meta.name)} · ${item.itemNo}`}
+          alt={`${displayName(item, meta)} · ${item.itemNo}`}
           onClose={() => setZoomed(false)}
         />
       )}
@@ -169,7 +169,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
             <img
               src={largeImageUrl(item.itemType, item.itemNo)}
               onError={(e) => { if (e.currentTarget.src !== meta.imageUrl) e.currentTarget.src = meta.imageUrl! }}
-              alt={formatItemName(meta.name)}
+              alt={displayName(item, meta)}
               className="w-20 h-20 object-contain rounded-lg bg-white p-1"
             />
           </button>
@@ -178,7 +178,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
         )}
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-white" title={meta?.name ? decodeEntities(meta.name) : undefined}>
-            {meta?.name ? formatItemName(meta.name) : item.itemNo}
+            {displayName(item, meta)}
           </h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-400 mt-1">
             <a

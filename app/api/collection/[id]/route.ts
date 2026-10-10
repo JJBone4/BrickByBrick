@@ -37,7 +37,7 @@ export async function PATCH(
 ) {
   const { id } = await params
   const body = await req.json()
-  const { itemNo, itemType, condition, quantity, notes, conditionTags, purchasePrice, purchaseDate } = body
+  const { itemNo, itemType, name, condition, quantity, notes, conditionTags, purchasePrice, purchaseDate } = body
 
   for (const [field, value] of Object.entries({ itemNo, itemType, condition })) {
     if (value !== undefined && !String(value).trim()) {
@@ -50,6 +50,7 @@ export async function PATCH(
     data: {
       ...(itemNo !== undefined && { itemNo: String(itemNo).trim().toUpperCase() }),
       ...(itemType !== undefined && { itemType: String(itemType).toUpperCase() }),
+      ...(name !== undefined && { name: name ? String(name).trim() || null : null }),
       ...(condition !== undefined && { condition: String(condition).toUpperCase() }),
       ...(quantity !== undefined && { quantity: Number(quantity) || 1 }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),

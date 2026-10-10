@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, Pencil, X, Info } from 'lucide-react'
 import { CollectionEntry } from '@/lib/types'
-import { formatItemName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
+import { displayName, decodeEntities, bricklinkUrl, largeImageUrl } from '@/lib/formatName'
 import ImageLightbox from '@/components/ImageLightbox'
 import { typeLabel } from '@/lib/itemTypes'
 import StatusBadge from '@/components/StatusBadge'
@@ -143,7 +143,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
                     >
                       <img
                         src={item.meta.imageUrl}
-                        alt={formatItemName(item.meta.name)}
+                        alt={displayName(item, item.meta)}
                         className="w-10 h-10 object-contain rounded bg-white p-0.5"
                       />
                     </button>
@@ -160,7 +160,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
                     className="font-medium text-white"
                     title={item.meta?.name ? decodeEntities(item.meta.name) : undefined}
                   >
-                    {item.meta?.name ? formatItemName(item.meta.name) : item.itemNo}
+                    {displayName(item, item.meta)}
                   </div>
                   <div className="text-xs text-gray-500">
                     <a
@@ -276,7 +276,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
         <ImageLightbox
           src={largeImageUrl(zoomed.itemType, zoomed.itemNo)}
           fallbackSrc={zoomed.meta.imageUrl}
-          alt={`${formatItemName(zoomed.meta.name)} · ${zoomed.itemNo}`}
+          alt={`${displayName(zoomed, zoomed.meta)} · ${zoomed.itemNo}`}
           onClose={() => setZoomed(null)}
         />
       )}

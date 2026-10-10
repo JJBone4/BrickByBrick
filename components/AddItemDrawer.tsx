@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Check, Image as ImageIcon } from 'lucide-react'
 import { CachedItemData, CollectionEntry } from '@/lib/types'
-import { formatItemName, decodeEntities, bricklinkUrl } from '@/lib/formatName'
+import { formatItemName, decodeEntities, bricklinkUrl, displayName } from '@/lib/formatName'
 import { tagGroups, toggleTag as toggleTagIn } from '@/lib/conditionTags'
 import { ITEM_TYPES, typeLabel } from '@/lib/itemTypes'
 
@@ -32,6 +32,9 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
   // In edit mode, start from the item's current values
   const [itemNo, setItemNo] = useState(item?.itemNo ?? '')
   const [itemType, setItemType] = useState(item?.itemType ?? 'MINIFIG')
+  // Name starts as the BrickLink name and follows the looked-up item until the user types their own
+  const [name, setName] = useState(item?.name ?? (item?.meta?.name ? formatItemName(item.meta.name) : ''))
+  const [nameEdited, setNameEdited] = useState(!!item?.name)
   const [condition, setCondition] = useState(item?.condition ?? 'U')
   const [quantity, setQuantity] = useState(item ? String(item.quantity) : '1')
   const [purchasePrice, setPurchasePrice] = useState(item?.purchasePrice != null ? String(item.purchasePrice) : '')
@@ -56,13 +59,14 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
       if (!res.ok) throw new Error('Item not found')
       const data = await res.json()
       setPreview(data)
+      if (!nameEdited) setName(formatItemName(data.name))
     } catch {
       setPreview(null)
       setPreviewError('Could not find item on BrickLink')
     } finally {
       setPreviewLoading(false)
     }
-  }, [itemNo, itemType])
+  }, [itemNo, itemType, nameEdited])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,7 +81,17 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
     setItemNo('')
     setPreview(null)
     setPreviewError('')
+    if (!nameEdited) setName('')
   }
+
+  // The BrickLink name for the typed ID, once it's known
+  const typedId = itemNo.trim().toUpperCase()
+  const previewMatches = !!preview && preview.itemNo.toUpperCase() === typedId && preview.itemType === itemType
+  const bricklinkName = previewMatches
+    ? formatItemName(preview.name)
+    : item?.meta?.name && item.itemNo === typedId && item.itemType === itemType
+      ? formatItemName(item.meta.name)
+      : null
 
   const groups = tagGroups(itemType)
   const availableTags = new Set(groups.flatMap(([, tags]) => tags.map((t) => t.key)))
@@ -89,6 +103,8 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
   function reset() {
     setItemNo('')
     setItemType('MINIFIG')
+    setName('')
+    setNameEdited(false)
     setCondition('U')
     setQuantity('1')
     setPurchasePrice('')
@@ -110,6 +126,8 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
         body: JSON.stringify({
           itemNo: itemNo.trim().toUpperCase(),
           itemType,
+          // Only store a name that differs from BrickLink's, so untouched rows keep following it
+          name: name.trim() && name.trim() !== bricklinkName ? name.trim() : null,
           condition,
           quantity: Number(quantity),
           purchasePrice: purchasePrice ? Number(purchasePrice) : null,
@@ -127,14 +145,14 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
         )
       }
       const saved = await res.json()
-      const name = preview?.name ? formatItemName(preview.name) : saved.itemNo
+      const label = displayName(saved, previewMatches ? preview : null)
       const message = isEdit
         ? saved.merged
-          ? `Combined with matching row — ${name} count: ${saved.quantity}`
-          : `Saved changes to ${name}`
+          ? `Combined with matching row — ${label} count: ${saved.quantity}`
+          : `Saved changes to ${label}`
         : saved.merged
-          ? `Added to ${name} count: ${saved.quantity}`
-          : `Added ${name} to your collection`
+          ? `Added to ${label} count: ${saved.quantity}`
+          : `Added ${label} to your collection`
       reset()
       onAdded(message)
       onClose()
@@ -198,13 +216,12 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
 
           {/* Preview: always takes the same space so the form doesn't shift while typing */}
           {(() => {
-            const typedId = itemNo.trim().toUpperCase()
             // Until the lookup for the typed ID finishes (including the debounce pause), show loading
             const state = !typedId
               ? 'empty'
               : previewLoading
                 ? 'loading'
-                : preview && preview.itemNo.toUpperCase() === typedId && preview.itemType === itemType
+                : previewMatches
                   ? 'found'
                   : previewError
                     ? 'error'
@@ -260,6 +277,32 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
               </div>
             )
           })()}
+
+          {/* Name */}
+          <div>
+            <div className="flex items-baseline justify-between mb-1">
+              <label htmlFor="item-name" className="block text-xs font-medium text-gray-400">
+                Name
+              </label>
+              {bricklinkName && name.trim() !== bricklinkName && (
+                <button
+                  type="button"
+                  onClick={() => { setName(bricklinkName); setNameEdited(false) }}
+                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                >
+                  Use BrickLink name
+                </button>
+              )}
+            </div>
+            <input
+              id="item-name"
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setNameEdited(true) }}
+              placeholder={bricklinkName ?? 'Defaults to the BrickLink name'}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+            />
+          </div>
 
           {/* Condition + Quantity */}
           <div className="flex gap-3">

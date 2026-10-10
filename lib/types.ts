@@ -2,6 +2,7 @@ export interface CollectionEntry {
   id: string
   itemNo: string
   itemType: string
+  name: string | null // custom name; null = use the BrickLink name
   condition: string
   quantity: number
   purchasePrice: number | null
@@ -43,6 +44,17 @@ export interface InvestmentData {
   gain: number
   gainPercent: number
   chartData: Array<{ date: string; marketValue: number; costBasis: number }>
+}
+
+export interface WishlistEntry {
+  id: string
+  itemNo: string
+  itemType: string
+  condition: string
+  maxPrice: number | null
+  createdAt: string
+  snapshot: PriceSnapshotData | null
+  meta: CachedItemData | null
 }
 
 export interface PriceSaleData {

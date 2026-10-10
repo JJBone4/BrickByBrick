@@ -59,5 +59,10 @@ export function formatItemName(raw: string): string {
   return `${base} (${color})`
 }
 
+/** The name to show for a collection row: the user's custom name, else the formatted BrickLink name, else the ID */
+export function displayName(item: { itemNo: string; name?: string | null }, meta?: { name: string } | null): string {
+  return item.name || (meta?.name ? formatItemName(meta.name) : item.itemNo)
+}
+
 // Link/image helpers moved to itemTypes (they depend on the item type); re-exported for existing imports
 export { bricklinkUrl, largeImageUrl } from './itemTypes'

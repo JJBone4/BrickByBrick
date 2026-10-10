@@ -72,10 +72,12 @@ export async function ensureFreshPrices(itemNo: string, itemType: string): Promi
 }
 
 export async function refreshPrices(): Promise<{ refreshed: number; errors: string[] }> {
-  const items = await prisma.collectionItem.findMany({
-    select: { itemNo: true, itemType: true },
-    distinct: ['itemNo', 'itemType'],
-  })
+  // Collection and wish list items both get prices (wish list items never count toward portfolio value)
+  const [owned, wanted] = await Promise.all([
+    prisma.collectionItem.findMany({ select: { itemNo: true, itemType: true }, distinct: ['itemNo', 'itemType'] }),
+    prisma.wishlistItem.findMany({ select: { itemNo: true, itemType: true }, distinct: ['itemNo', 'itemType'] }),
+  ])
+  const items = [...new Map([...owned, ...wanted].map((i) => [`${i.itemNo}|${i.itemType}`, i])).values()]
 
   let refreshed = 0
   const errors: string[] = []
