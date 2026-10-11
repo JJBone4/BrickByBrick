@@ -12,8 +12,9 @@ export interface ConditionTag {
   opposite?: string
 }
 
-const BOTH: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG', 'SET']
-const FIGS: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG']
+const BOTH: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG', 'ITEM', 'SET']
+// Other BrickLink items get the same options as minifigs
+const FIGS: ConditionTag['appliesTo'] = ['MINIFIG', 'BIGFIG', 'ITEM']
 
 export const CONDITION_TAGS: ConditionTag[] = [
   // Minifig damage

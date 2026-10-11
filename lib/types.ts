@@ -34,6 +34,7 @@ export interface CachedItemData {
   name: string
   imageUrl: string | null
   categoryName: string | null
+  bricklinkType?: string | null // catalog the ID was found in (PART, GEAR, ...)
   lastFetched: string
   retired?: boolean | null // null/undefined = unknown
 }

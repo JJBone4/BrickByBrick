@@ -41,12 +41,14 @@ model PriceSnapshot {
 }
 
 model CachedItem {
-  itemNo       String
-  itemType     String
-  name         String
-  imageUrl     String?
-  categoryName String?
-  lastFetched  DateTime @default(now())
+  itemNo           String
+  itemType         String
+  name             String
+  imageUrl         String?
+  categoryName     String?
+  lastFetched      DateTime  @default(now())
+  // BrickLink catalog the ID was found in (PART, GEAR, ...); matters for ITEM, whose ID doesn't say
+  bricklinkType    String?
   // Retirement (from Brickset): true = every set it came in has retired, false = still on sale,
   // null = unknown (no Brickset key, or no dates for its sets)
   retired          Boolean?

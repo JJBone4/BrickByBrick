@@ -29,12 +29,14 @@ export async function GET(
         name: item.name,
         imageUrl: item.thumbnail_url || item.image_url || null,
         categoryName: String(item.category_id),
+        bricklinkType: item.type,
         lastFetched: new Date(),
       },
       update: {
         name: item.name,
         imageUrl: item.thumbnail_url || item.image_url || null,
         categoryName: String(item.category_id),
+        bricklinkType: item.type,
         lastFetched: new Date(),
       },
     })

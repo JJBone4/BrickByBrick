@@ -79,6 +79,7 @@ await db.exec(`
 
   -- Added after the table was first created, so existing local databases need the column too
   ALTER TABLE "CollectionItem" ADD COLUMN IF NOT EXISTS "name" TEXT;
+  ALTER TABLE "CachedItem" ADD COLUMN IF NOT EXISTS "bricklinkType" TEXT;
 
   CREATE INDEX IF NOT EXISTS "CollectionItem_itemNo_itemType_idx"
     ON "CollectionItem"("itemNo", "itemType");

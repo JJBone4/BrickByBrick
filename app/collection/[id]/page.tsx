@@ -150,7 +150,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
       {zoomed && meta?.imageUrl && (
         <ImageLightbox
-          src={largeImageUrl(item.itemType, item.itemNo)}
+          src={largeImageUrl(item.itemType, item.itemNo, meta?.bricklinkType)}
           fallbackSrc={meta.imageUrl}
           alt={`${displayName(item, meta)} · ${item.itemNo}`}
           onClose={() => setZoomed(false)}
@@ -167,7 +167,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
             className="shrink-0 rounded-lg cursor-zoom-in hover:ring-2 hover:ring-yellow-400 transition-shadow"
           >
             <img
-              src={largeImageUrl(item.itemType, item.itemNo)}
+              src={largeImageUrl(item.itemType, item.itemNo, meta?.bricklinkType)}
               onError={(e) => { if (e.currentTarget.src !== meta.imageUrl) e.currentTarget.src = meta.imageUrl! }}
               alt={displayName(item, meta)}
               className="w-20 h-20 object-contain rounded-lg bg-white p-1"
@@ -182,7 +182,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
           </h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-400 mt-1">
             <a
-              href={bricklinkUrl(item.itemType, item.itemNo)}
+              href={bricklinkUrl(item.itemType, item.itemNo, meta?.bricklinkType)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:text-blue-400 hover:underline"

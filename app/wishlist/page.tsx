@@ -12,6 +12,7 @@ const ID_PLACEHOLDER: Record<string, string> = {
   MINIFIG: 'e.g. SW0038',
   BIGFIG: 'e.g. SW0071 or 11323pb01c01',
   SET: 'e.g. 75192-1',
+  ITEM: 'Any BrickLink no., e.g. 853967',
 }
 
 function usd(n: number | null | undefined) {
@@ -224,7 +225,7 @@ export default function WishlistPage() {
                       </div>
                       <div className="text-xs text-gray-500">
                         <a
-                          href={bricklinkUrl(item.itemType, item.itemNo)}
+                          href={bricklinkUrl(item.itemType, item.itemNo, item.meta?.bricklinkType)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="hover:text-blue-400 hover:underline"
@@ -304,7 +305,7 @@ export default function WishlistPage() {
 
       {zoomed?.meta?.imageUrl && (
         <ImageLightbox
-          src={largeImageUrl(zoomed.itemType, zoomed.itemNo)}
+          src={largeImageUrl(zoomed.itemType, zoomed.itemNo, zoomed.meta.bricklinkType)}
           fallbackSrc={zoomed.meta.imageUrl}
           alt={`${formatItemName(zoomed.meta.name)} · ${zoomed.itemNo}`}
           onClose={() => setZoomed(null)}

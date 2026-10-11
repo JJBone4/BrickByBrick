@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       name: bl.name,
       imageUrl: bl.thumbnail_url || bl.image_url || null,
       categoryName: String(bl.category_id),
+      bricklinkType: bl.type,
       lastFetched: new Date(),
     }
     await prisma.cachedItem.upsert({

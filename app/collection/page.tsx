@@ -127,8 +127,9 @@ export default function CollectionPage() {
     { type: 'MINIFIG', one: 'minifig', many: 'minifigs', always: true },
     { type: 'BIGFIG', one: 'big fig', many: 'big figs', always: false },
     { type: 'SET', one: 'set', many: 'sets', always: true },
+    { type: 'ITEM', one: 'other item', many: 'other items', always: false },
   ]
-    // Big figs only appear in the header once you own one
+    // Big figs and other items only appear in the header once you own one
     .filter(({ type, always }) => always || countUnits(items, type) > 0)
     .map(({ type, one, many }) => {
       const total = countUnits(items, type)

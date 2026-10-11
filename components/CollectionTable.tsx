@@ -164,7 +164,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
                   </div>
                   <div className="text-xs text-gray-500">
                     <a
-                      href={bricklinkUrl(item.itemType, item.itemNo)}
+                      href={bricklinkUrl(item.itemType, item.itemNo, item.meta?.bricklinkType)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
@@ -274,7 +274,7 @@ export default function CollectionTable({ items, onRefresh, onSaved }: Props) {
 
       {zoomed?.meta?.imageUrl && (
         <ImageLightbox
-          src={largeImageUrl(zoomed.itemType, zoomed.itemNo)}
+          src={largeImageUrl(zoomed.itemType, zoomed.itemNo, zoomed.meta.bricklinkType)}
           fallbackSrc={zoomed.meta.imageUrl}
           alt={`${displayName(zoomed, zoomed.meta)} · ${zoomed.itemNo}`}
           onClose={() => setZoomed(null)}

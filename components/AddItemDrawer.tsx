@@ -11,6 +11,7 @@ const ID_PLACEHOLDER: Record<string, string> = {
   MINIFIG: 'e.g. SW0038',
   BIGFIG: 'e.g. SW0071 or 11323pb01c01',
   SET: 'e.g. 75192-1',
+  ITEM: 'Any BrickLink no., e.g. 853967',
 }
 
 interface Props {
@@ -254,7 +255,7 @@ export default function AddItemDrawer({ open, onClose, onAdded, item }: Props) {
                       </div>
                       <div className="text-xs text-gray-400">
                         <a
-                          href={bricklinkUrl(preview.itemType, preview.itemNo)}
+                          href={bricklinkUrl(preview.itemType, preview.itemNo, preview.bricklinkType)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="hover:text-blue-400 hover:underline"
